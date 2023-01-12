@@ -1,0 +1,13 @@
+#!/bin/sh -e
+line_cache="${XDG_CACHE_HOME:-"$HOME/.cache"}/scm/line_cache"
+if [ ! -f "$line_cache" ]; then
+	>&2 printf "cache file '%s' not found!\n" "$line_cache"
+	exit 1
+fi
+
+str="$(sort -r < "$line_cache" | cut -f2- | dmenu -l 5 "$@")"
+entry_file="$(grep "$str" "$line_cache" | awk '{print $1}')"
+
+if [ -f "$entry_file" ]; then
+	xsel --clipboard < "$entry_file"
+fi
