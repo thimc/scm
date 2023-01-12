@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include <X11/X.h>
 #include <X11/Xlib.h>
@@ -46,18 +47,18 @@ makelinecache(void)
 	int i;
 
 	snprintf(cpath, EPATHSIZE, "%s/line_cache", maindir);
-	DEBUG("generating line cche to %s\n", cpath);
+	debug("generating line cche to %s", cpath);
 	if ((f = fopen(cpath, "w")) == NULL)
 		die("%s: fopen: %s '%s'", __FUNCTION__, path, strerror(errno));
 
-	/* DEBUG("printing clip entries\n"); */
+	/* debug("printing clip entries"); */
 	for (i = 0; i < MAXENTRIES; i++) {
 		snprintf(path, EPATHSIZE, "%s/E%d", maindir, clipentries[i].fname);
-		if (access(path, F_OK) != 0)
+		if (access(path, F_OK) < 0)
 			continue;
 		fprintf(f, "%s\t%s%s\n", path, clipentries[i].line,
 				clipentries[i].counter);
-		/* DEBUG("%3d: %s\t%s%s\n", i, path, clipentries[i].line, */
+		/* debug("%3d: %s\t%s%s", i, path, clipentries[i].line, */
 		/* 		clipentries[i].counter); */
 	}
 	fclose(f);
@@ -77,7 +78,7 @@ getlinecounter(const char* path)
 	while ((chr = fgetc(f)) != EOF)
 		c += (chr=='\n');
 	fclose(f);
-	/* DEBUG("lines found: %d\n", c); */
+	/* debug("lines found: %d", c); */
 	if (c > 1)
 		snprintf(buf, ECNTRSIZE, " (%d lines)", c);
 	return buf;
@@ -105,7 +106,7 @@ readentries(void)
 	char path[EPATHSIZE];
 	for (i = 0; i < MAXENTRIES; i++) {
 		snprintf(path, EPATHSIZE, "%s/E%d", maindir, clipentries[i].fname);
-		if (access(path, F_OK) != 0)
+		if (access(path, F_OK) < 0)
 			continue;
 			/* TODO: OH NO, um, something isn't quite right here! Future me
 			 * will probably fix it. if it ain't broke don't fix it :) */
@@ -132,7 +133,7 @@ scanentries(void)
 	while ((dent = readdir(mdir)) != NULL) {
 		if (!sscanf(dent->d_name, "E%d", &r))
 			continue;
-		DEBUG("readdir %3d: %s\n", f, dent->d_name);
+		debug("readdir %3d: %s", f, dent->d_name);
 
 		filenames[f] = r;
 
@@ -142,31 +143,31 @@ scanentries(void)
 			if (filenames == NULL)
 				die("%s: realloc: '%s'", __FUNCTION__, strerror(errno));
 			fcounter += MAXENTRIES;
-			DEBUG("realloc'd %d\n", fcounter);
+			debug("realloc'd %d", fcounter);
 		}
 	}
 	closedir(mdir);
 
-	DEBUG("readdir %d files, have allocated %d. max %d slots\n",
+	debug("readdir %d files, have allocated %d. max %d slots",
 			f, fcounter, MAXENTRIES);
 
 	qsort(filenames, fcounter, sizeof(int), cmp);
-	DEBUG("sorted!\n");
+	debug("sorted!");
 	o = MAXENTRIES;
 
 	for(i = fcounter - 1; i >= 0; i--) {
 		if (filenames[i] <= 0)
 			continue;
 		if (o >= 0) {
-			DEBUG("store val: %d (%d) (%d slots available)\n",
+			debug("store val: %d (%d) (%d slots available)",
 					filenames[i], i, o);
 			clipentries[MAXENTRIES - o].fname = filenames[i];
 			o--;
 		} else {
 			snprintf(path, EPATHSIZE, "%s/E%d", maindir, filenames[i]);
-			if (remove(path) != 0)
+			if (remove(path) < 0)
 				die("%s: remove: '%s' %s", __FUNCTION__, path, strerror(errno));
-			DEBUG("removed excess entry: %s\n", path);
+			debug("removed excess entry: %s", path);
 		}
 	}
 
@@ -181,15 +182,15 @@ storeclip(const char *text)
 	char* clip = (char*)text;
 
 	snprintf(path, EPATHSIZE, "%s/E%d", maindir, (int)time(NULL));
-	DEBUG("fetched '%s' from clipboard! storing to %s\n", clip, path);
+	debug("fetched '%s' from clipboard! storing to %s", clip, path);
 
 	if ((f = fopen(path, "w")) == NULL)
-		errx(1, "storeclip fopen: '%s': %s", path, strerror(errno));
+		die("%s: fopen %s '%s'", __FUNCTION__, path, strerror(errno));
 	fprintf(f, "%s", text);
 	fclose(f);
 
-	if (chmod(path, FILEMASK) != 0)
-		DEBUG("storeclip chmod '%s': %s", path, strerror(errno));
+	if (chmod(path, FILEMASK) < 0)
+		die("%s: chmod %s '%s'", __FUNCTION__, path, strerror(errno));
 }
 
 void
@@ -205,10 +206,12 @@ main(int argc, char *argv[])
 	char *clipboard;
 	XEvent event;
 	int i;
+	int fd;
+	char path[EPATHSIZE];
 
 	instance.display = XOpenDisplay(NULL);
 	if (instance.display == NULL) {
-		errx(1, "can't open X display: %s", strerror(errno));
+		die("%s: can't open X display: %s", __FUNCTION__, strerror(errno));
 	}
 	instance.root = DefaultRootWindow(instance.display);
 	instance.clipboard = XInternAtom(instance.display, "CLIPBOARD", False);
@@ -216,20 +219,20 @@ main(int argc, char *argv[])
 			 1, 1, 1, 1, 1, CopyFromParent, CopyFromParent);
 
 #ifdef __OpenBSD__
-	if (pledge("stdio fattr rpath wpath cpath unveil", NULL) != 0) {
-		errx(1, "pledge: %s", strerror(errno));
+	if (pledge("stdio fattr rpath wpath cpath flock unveil", NULL) < 0) {
+		die("%s: pledge: %s", __FUNCTION__, strerror(errno));
 	}
 #endif
 
 	for (i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "-d")) { /* set main directory */
 			maindir = argv[++i];
-			DEBUG("main dir set to %s", maindir);
+			debug("main dir set to %s", maindir);
+			if (access(maindir, F_OK) < 0)
+				die("%s: access %s '%s'", __FUNCTION__, path, strerror(errno));
 #ifdef __OpenBSD__
-			if (unveil(maindir, "rwc") != 0)
-				errx(1, "unveil: %s", strerror(errno));
-			if (access(maindir, F_OK) != 0)
-				errx(1, "directory '%s': %s", maindir, strerror(errno));
+			if (unveil(maindir, "rwc") < 0)
+				die("%s: unveil %s '%s'", __FUNCTION__, path, strerror(errno));
 #endif
 		} else if (!strcmp(argv[i], "-v")) { /* prints version information */
 			puts("scm-" VERSION);
@@ -246,9 +249,21 @@ main(int argc, char *argv[])
 	if (maindir == NULL)
 		exit(1);
 
+	snprintf(path, EPATHSIZE, "%s/lock", maindir);
+	debug("file lock '%s'", path);
+	if ((fd = open(path, O_WRONLY)) < 0)
+		die("%s: open: %s '%s'", __FUNCTION__, path, strerror(errno));
+
+	if (flock(fd, LOCK_EX|LOCK_NB) < 0) {
+		if (errno == EWOULDBLOCK)
+			die("%s is already running!", argv[0]);
+		else
+			die("%s: flock: %s '%s'", __FUNCTION__, path, strerror(errno));
+	}
+
 	if (XFixesQueryExtension(instance.display, &instance.event_base,
 				&instance.error_base) == 0)
-		errx(1, "xfixes query extension: %s", strerror(errno));
+		die("%s: xfixes '%s'", __FUNCTION__, strerror(errno));
 
 	XFixesSelectSelectionInput(instance.display, instance.root,
 		     instance.clipboard, XFixesSetSelectionOwnerNotifyMask);
@@ -256,17 +271,15 @@ main(int argc, char *argv[])
 	clipentries = ecalloc(MAXENTRIES, sizeof(entry));
 
 	do {
-		/* printf("\e[1;1H\e[2J"); */
-
 		scanentries();
 		readentries();
 		makelinecache();
 
 		for (i = 0; i < MAXENTRIES; i++)
-			DEBUG("%3d: [%d] %s%s\n", i, clipentries[i].fname,
+			debug("%3d: [%d] %s%s", i, clipentries[i].fname,
 				clipentries[i].line, clipentries[i].counter);
 
-		DEBUG("Waiting for clipboard changes..");
+		debug("Waiting for clipboard changes..");
 		XNextEvent(instance.display, &event);
 		if (event.type == (instance.event_base + XFixesSelectionNotify) &&
 				((XFixesSelectionNotifyEvent *) & event)->selection
@@ -284,12 +297,15 @@ main(int argc, char *argv[])
 					 entry that was copied during the exact same second. */
 	} while (!oneshot);
 
-	free(clipboard);
 	for (i = 0; i < MAXENTRIES + 1; i++) {
 		free(clipentries[i].line);
 		free(clipentries[i].counter);
 	}
 	free(clipentries);
+	free(clipboard);
+
+	if (flock(fd, LOCK_UN) < 0)
+		die("%s: flock LOCK_UN: %s '%s'", __FUNCTION__, path, strerror(errno));
 
 	XDestroyWindow(instance.display, instance.window);
 	XCloseDisplay(instance.display);
