@@ -32,6 +32,5 @@ be changed by editing the config.h file and recompiling scm.
 ## TODO
 * (Probably?) Fix a bunch of memory leaks
 * Make sure that duplicate clipboard entries aren't stored
-* Implement file locking mechanisms to prevent multiple instances of scm
 * Add a flag that allows scm to listen for PRIMARY clipboard changes.
 
