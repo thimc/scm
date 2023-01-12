@@ -1,0 +1,50 @@
+.TH SCM 1 scm\-VERSION
+.SH NAME
+scm \- simple clipboard manager
+.SH SYNOPSIS
+.B scm
+.RB [ \-d\ directory]\ [\-v]\ [\-V]\ [\-1]
+.SH DESCRIPTION
+scm is a minimalistic clipboard manager daemon for X.
+.P
+This manpage and project is a work in progress, see the TODO file for
+anything that may or may not be implemented or fixed in the future.
+.SH OPTIONS
+.TP
+.B \-v
+prints version information to stderr, then exits.
+.TP
+.B \-d
+specifies the working directory for scm where all entries are kept.
+.TP
+.B \-V
+prints debug messages to stdout.
+.TP
+.B \-1
+runs scm for one loop iteration and then exits.
+.TP
+.SH USAGE
+It is recommended to run scm via the supplied
+.B scmd
+script which will set a working directory for scm to
+.B $XDG_CACHE_HOME
+or
+.B $HOME/.cache/scm
+.P
+Once scmd has been started, the user is free to interact with the data
+collected by scm in any way, shape or form. The supplied
+.B scmenu
+script is a
+.B dmenu(1)
+wrapper for scm and lets the user easily copy any of the stored entries in to
+their clipboard.
+.SH CUSTOMIZATION
+Although it may not be necessary for all users, scm can be configured by
+editing the config.h and (re)compiling the source
+code. This keeps it fast, secure and simple.
+.SH SEE ALSO
+.BR dmenu (1)
+.SH BUGS
+This program is presumably full of bugs, if you encounter any of them
+please create an issue at
+.B https://github.com/cirala/scm
