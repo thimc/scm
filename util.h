@@ -16,8 +16,7 @@ struct entry_t {
 	char* counter;
 };
 
-#define DEBUG(fmt, args...) fprintf(stderr, "%s(): " fmt, __func__, ##args)
-
+void debug(const char* fmt, ...);
 void die(const char *fmt, ...);
 void *ecalloc(size_t nmemb, size_t size);
 char* get_utf_prop(xorg instance, const char* bufname, const char* fmtname);

@@ -13,7 +13,21 @@
 #include "util.h"
 
 void
-die(const char *fmt, ...)
+debug(const char* fmt, ...)
+{
+	va_list ap;
+
+	if (!verbose)
+		return;
+
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
+	fputc('\n', stderr);
+}
+
+void
+die(const char* fmt, ...)
 {
 	va_list ap;
 
@@ -37,7 +51,7 @@ ecalloc(size_t nmemb, size_t size)
 	void *p;
 
 	if (!(p = calloc(nmemb, size)))
-		die("ecalloc: %s\n", strerror(errno));
+		die("%s: %s\n", __FUNCTION__, strerror(errno));
 	return p;
 }
 
@@ -65,7 +79,8 @@ get_utf_prop(xorg instance, const char* bufname, const char* fmtname)
 				0, LONG_MAX / 4, False, AnyPropertyType, &fmtid, &resbits,
 				&ressize, &restail, (unsigned char**)&result);
 		if (fmtid == incrid)
-			err(1, "buffer too large. INCR reading isn't implemented yet");
+			die("%s: buffer too large. INCR reading isn't implemented\n",
+					__FUNCTION__, strerror(errno));
 		out = strndup(result, (int)ressize);
 		XFree(result);
 	}
