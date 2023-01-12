@@ -95,7 +95,6 @@ getfirstline(const char* path)
 	if ((fgets(buf, ELINESIZE, f)) == NULL)
 		die("%s: fgets: %s '%s'", __FUNCTION__, path, strerror(errno));
 	fclose(f);
-	buf[strlen(buf) - 1] = '\0';
 	return buf;
 }
 
