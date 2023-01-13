@@ -6,7 +6,7 @@ typedef struct entry_t entry;
 struct xorg_t {
 	Display* display;
 	Window window, root;
-	Atom clipboard, utf8;
+	Atom clipboard, primary, utf8;
 	int event_base, error_base;
 };
 

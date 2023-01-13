@@ -51,7 +51,7 @@ ecalloc(size_t nmemb, size_t size)
 	void *p;
 
 	if (!(p = calloc(nmemb, size)))
-		die("%s: %s\n", __FUNCTION__, strerror(errno));
+		die("%s: %s\n", __func__, strerror(errno));
 	return p;
 }
 
@@ -80,7 +80,7 @@ get_utf_prop(xorg instance, const char* bufname, const char* fmtname)
 				&ressize, &restail, (unsigned char**)&result);
 		if (fmtid == incrid)
 			die("%s: buffer too large. INCR reading isn't implemented\n",
-					__FUNCTION__, strerror(errno));
+					__func__, strerror(errno));
 		out = strndup(result, (int)ressize);
 		XFree(result);
 	}
