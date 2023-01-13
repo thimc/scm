@@ -267,8 +267,8 @@ main(int argc, char *argv[])
 		exit(1);
 
 	snprintf(path, EPATHSIZE, "%s/lock", maindir);
-	debug("file lock '%s'", path);
-	if ((fd = open(path, O_WRONLY)) < 0)
+	debug("got a session lock for '%s'", path);
+	if ((fd = open(path, O_RDWR|O_CREAT, FILEMASK)) < 0)
 		die("%s: open: %s '%s'", __func__, path, strerror(errno));
 
 	if (flock(fd, LOCK_EX|LOCK_NB) < 0) {
