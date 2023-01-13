@@ -15,10 +15,11 @@ the following arguments:
 
 -   -d specifies the working directory for scm
 -   -v spits out the version number and exits
--   -V shows debug messages, these are printed to stdout
--   -1 runs scm for one loop iteration (fetch clipboard event and store it)
+-   -V prints debug messages to stderr
+-   -1 runs scm for one loop iteration (fetch, save and quit)
+-   -p listens for PRIMARY selection changes
 
-It is recommended for novice users to run scm via the supplied `scmd` shell\
+It is recommended for new users to run scm via the supplied `scmd` shell\
 script because it sets everything up for the user.
 
 The scmd script sets the working directory to \$XDG_CACHE_HOME or\
@@ -30,7 +31,7 @@ be changed by editing the config.h file and recompiling scm.
 
 
 ## TODO
-* (Probably?) Fix a bunch of memory leaks
-* Make sure that duplicate clipboard entries aren't stored
-* Add a flag that allows scm to listen for PRIMARY clipboard changes.
+[ ] (Probably?) Fix a bunch of memory leaks
+[x] Make sure that duplicate clipboard entries aren't stored
+[x] Add a flag that allows scm to listen for PRIMARY clipboard changes.
 
