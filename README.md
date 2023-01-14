@@ -26,6 +26,7 @@ The scmd script sets the working directory to **\$XDG_CACHE_HOME** or\
 Once scmd has been started, run `scmenu` to get a dmenu prompt.\
 By default scm will store up to 30 entries but this behavior can\
 be changed by editing the config.h file and recompiling scm.
+
 **NOTE: if you pass any arguments to `scmenu` they will be redirected to dmenu**
 
 ## TODO
