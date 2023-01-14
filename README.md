@@ -30,8 +30,7 @@ be changed by editing the config.h file and recompiling scm.
 *NOTE: if you pass any arguments to `scmenu` they will be redirected to dmenu*
 
 ## TODO
-Please keep in mind that the following ideas bellow are not guaranteed
-to be implemented.
+Please keep in mind that the ideas below are not guaranteed to be implemented.
 - [ ] add a ruleset for ignoring clipboard activity based on the window title
 that are defined in a list (think password managers)
 - [ ] add a flag which allows for syncing the contents between PRIMARY and clipboard
