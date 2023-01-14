@@ -27,10 +27,10 @@ Once scmd has been started, run `scmenu` to get a dmenu prompt.\
 By default scm will store up to 30 entries but this behavior can\
 be changed by editing the config.h file and recompiling scm.
 
-**NOTE: if you pass any arguments to `scmenu` they will be redirected to dmenu**
+*NOTE: if you pass any arguments to `scmenu` they will be redirected to dmenu*
 
 ## TODO
-Please note that the following ideas bellow are not guaranteed to be implemented.
+Please keep in mind that the following ideas bellow are not guaranteed to be implemented.
 - [ ] ignore clipboard activity from programs defined in a list (so when copying from a password manager or similar scm won't make a entry out of it)
 - [ ] add a flag which allows for syncing the contents between PRIMARY and clipboard
 - [x] Make sure that duplicate clipboard entries aren't stored
