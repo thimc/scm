@@ -31,7 +31,9 @@ be changed by editing the config.h file and recompiling scm.
 
 
 ## TODO
-- [ ] (Probably?) Fix a bunch of memory leaks
+Please note that the following ideas bellow are not guaranteed to be implemented.
+- [ ] ignore clipboard activity from programs defined in a list (so when copying from a password manager or similar scm won't make a entry out of it)
+- [ ] add a flag which allows for syncing the contents between PRIMARY and clipboard
 - [x] Make sure that duplicate clipboard entries aren't stored
 - [x] Add a flag that allows scm to listen for PRIMARY clipboard changes.
 
