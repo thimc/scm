@@ -26,7 +26,7 @@ void makelinecache(void);
 void trimlist(void);
 void sortentries(void);
 void scanentries(void);
-void storeclip(const char *text);
+int storeclip(const char *text);
 void usage(void);
 
 int verbose = 0; /* defined as extern in config.h */
@@ -177,7 +177,8 @@ scanentries(void)
 		} else {
 			snprintf(path, EPATHSIZE, "%s/E%d", maindir, filenames[i]);
 			if (remove(path) < 0)
-				die("%s: remove: '%s' %s", __func__, path, strerror(errno));
+				continue;
+				/* die("%s: remove: '%s' %s", __func__, path, strerror(errno)); */
 			debug("removed excess entry: %s", path);
 		}
 	}
@@ -185,14 +186,17 @@ scanentries(void)
 	free(filenames);
 }
 
-void
+int
 storeclip(const char *text)
 {
 	FILE *f;
 	char path[EPATHSIZE];
 
+	if (strnlen(text, ELINESIZE) <= 0)
+		return -1;
+
 	if (duplicate(text))
-		return;
+		return -1;
 
 	snprintf(path, EPATHSIZE, "%s/E%d", maindir, (int)time(NULL));
 	debug("fetched '%s' from clipboard! storing to %s", text, path);
@@ -204,6 +208,7 @@ storeclip(const char *text)
 
 	if (chmod(path, FILEMASK) < 0)
 		die("%s: chmod %s '%s'", __func__, path, strerror(errno));
+	return 1;
 }
 
 void
@@ -290,12 +295,11 @@ main(int argc, char *argv[])
 		     instance.primary, XFixesSetSelectionOwnerNotifyMask);
 
 	clipentries = ecalloc(MAXENTRIES, sizeof(entry));
+	scanentries();
+	readentries();
+	makelinecache();
 
 	do {
-		scanentries();
-		readentries();
-		makelinecache();
-
 		for (i = 0; i < MAXENTRIES; i++)
 			if (clipentries[i].line)
 				debug("%.3d: [%d] %s%s", i, clipentries[i].fname,
@@ -307,17 +311,21 @@ main(int argc, char *argv[])
 			if (((XFixesSelectionNotifyEvent *) & event)->selection
 					== instance.clipboard) {
 				if ((clipboard = get_utf_prop(instance, "CLIPBOARD",
-								"UTF8_STRING")) != NULL) {
-					storeclip(clipboard);
-				}
+								"UTF8_STRING")) != NULL)
+					if(storeclip(clipboard) < 0)
+						goto skip;
 			} else if (((XFixesSelectionNotifyEvent *) & event)->selection
 					== instance.primary && primaryflag) {
 				if ((primary = get_utf_prop(instance, "PRIMARY",
-								"UTF8_STRING")) != NULL) {
-					storeclip(primary);
-				}
+								"UTF8_STRING")) != NULL)
+					if(storeclip(primary) < 0)
+						goto skip;
 			}
 		}
+		scanentries();
+		readentries();
+		makelinecache();
+skip:
 		fflush(stdout);
 		sleep(1); /* TODO: Find a better work around. for now we have
 					 to sleep in order make sure that the clip entry
