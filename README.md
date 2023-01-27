@@ -2,8 +2,6 @@
 
 scm is a minimalist clipboard manager manager for X.
 
-*NOTE: This project is a work in progress and is expected to crash*
-
 ## Requirements
 In order to build scm you need the Xlib and Xfixes header files.\
 It is also expected that you have dmenu(1) installed.
