@@ -1,6 +1,6 @@
 # scm - simple clipboard manager
 
-scm is a minimalist clipboard manager manager for X.
+scm is a minimalist clipboard manager for X.
 
 ## Requirements
 In order to build scm you need the Xlib and Xfixes header files.\
