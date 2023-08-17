@@ -13,11 +13,11 @@
 #include "util.h"
 
 void
-debug(const char* fmt, ...)
+debug(const char *fmt, ...)
 {
 	va_list ap;
 
-	if (!verbose)
+	if (!(flags & FLAG_VERBOSE))
 		return;
 
 	va_start(ap, fmt);
@@ -27,7 +27,7 @@ debug(const char* fmt, ...)
 }
 
 void
-die(const char* fmt, ...)
+die(const char *fmt, ...)
 {
 	va_list ap;
 
@@ -35,7 +35,7 @@ die(const char* fmt, ...)
 	vfprintf(stderr, fmt, ap);
 	va_end(ap);
 
-	if (fmt[0] && fmt[strlen(fmt)-1] == ':') {
+	if (fmt[0] && fmt[strlen(fmt) - 1] == ':') {
 		fputc(' ', stderr);
 		perror(NULL);
 	} else {
@@ -56,15 +56,15 @@ ecalloc(size_t nmemb, size_t size)
 }
 
 char*
-get_utf_prop(xorg instance, const char* bufname, const char* fmtname)
+get_utf_prop(xorg instance, const char* bufname)
 {
-	char* result = NULL;
-	char* out = NULL;
-	unsigned long ressize, restail;
+	char *result = NULL;
+	char *out = NULL;
+	size_t ressize, restail;
 	int resbits;
 	XEvent ev;
 	Atom bufid  = XInternAtom(instance.display, bufname, False);
-	Atom fmtid  = XInternAtom(instance.display, fmtname, False);
+	Atom fmtid  = XInternAtom(instance.display, "UTF8_STRING", False);
 	Atom propid = XInternAtom(instance.display, "XSEL_DATA", False);
 	Atom incrid = XInternAtom(instance.display, "INCR", False);
 
@@ -78,12 +78,14 @@ get_utf_prop(xorg instance, const char* bufname, const char* fmtname)
 		XGetWindowProperty(instance.display, instance.window, propid,
 				0, LONG_MAX / 4, False, AnyPropertyType, &fmtid, &resbits,
 				&ressize, &restail, (unsigned char**)&result);
-		if (fmtid == incrid)
+		if (fmtid == incrid) {
 			die("%s: buffer too large. INCR reading isn't implemented\n",
 					__func__, strerror(errno));
-		out = strndup(result, (int)ressize);
+		}
+		out = strndup(result, (size_t)ressize);
 		XFree(result);
 	}
+
 	return out;
 }
 

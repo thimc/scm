@@ -3,4 +3,4 @@ PATH="$PATH:$(pwd)"
 cachedir="${XDG_CACHE_HOME:-"$HOME/.cache"}/scm"
 
 [ ! -e "$cachedir" ] && mkdir -p "$cachedir"
-scm -d "$cachedir" "$@"
+./scm -d "$cachedir" $@

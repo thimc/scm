@@ -1,23 +1,20 @@
 /* See LICENSE file for copyright and license details. */
 
-typedef struct xorg_t xorg;
-typedef struct entry_t entry;
-
-struct xorg_t {
+typedef struct xorg_t {
 	Display* display;
 	Window window, root;
 	Atom clipboard, primary, utf8;
 	int event_base, error_base;
-};
+} xorg;
 
-struct entry_t {
+typedef struct entry_t {
 	int fname;
-	char* line;
-	char* counter;
-};
+	char *line;
+	char *counter;
+} entry;
 
-void debug(const char* fmt, ...);
+void debug(const char *fmt, ...);
 void die(const char *fmt, ...);
 void *ecalloc(size_t nmemb, size_t size);
-char* get_utf_prop(xorg instance, const char* bufname, const char* fmtname);
+char *get_utf_prop(xorg instance, const char *bufname);
 

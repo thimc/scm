@@ -7,7 +7,7 @@ INC = config.h util.h
 SRC = $(NAME).c util.c
 OBJ = $(SRC:.c=.o)
 
-CFLAGS  += -g -Wall\
+CFLAGS  += -g -Wall -Wextra -Wconversion\
 		   `pkg-config --cflags x11,xfixes`\
 		   -DVERSION=\"${VERSION}\"
 LDFLAGS += `pkg-config --libs x11,xfixes`
