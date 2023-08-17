@@ -90,7 +90,7 @@ getlinecounter(const char* path)
 
 	if ((f = fopen(path, "r")) == NULL)
 		die("%s: fopen: %s '%s'", __func__, path, strerror(errno));
-	buf = calloc(ECNTRSIZE, sizeof(char));
+	buf = ecalloc(ECNTRSIZE, sizeof(char));
 	while ((chr = fgetc(f)) != EOF)
 		nlines += (chr=='\n');
 	fclose(f);
@@ -109,7 +109,7 @@ getfirstline(const char* path)
 
 	if ((f = fopen(path, "r")) == NULL)
 		die("%s: fopen: %s '%s'", __func__, path, strerror(errno));
-	buf = malloc(ELINESIZE * sizeof(char));
+	buf = ecalloc(ELINESIZE, sizeof(char));
 	if ((fgets(buf, ELINESIZE, f)) == NULL)
 		die("%s: fgets: %s '%s'", __func__, path, strerror(errno));
 	fclose(f);
