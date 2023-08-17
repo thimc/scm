@@ -29,30 +29,12 @@ the working directory must be set using the
 .B \-d
 flag.
 .P
-It is recommended to run scm via the supplied
-.B scmd
-script which will set a working directory for scm to
-.B $XDG_CACHE_HOME
-or
-.B $HOME/.cache/scm
-.P
-Once scmd has been started, the user is free to interact with the data
-collected by scm. One method of retreiving the data is to use the
-.B scmenu
-script which is a
+scm comes with a script,
+.B scmenu,
+which is a
 .B dmenu(1)
-wrapper for scm and lets the user easily copy any of the stored entries
+wrapper that lets the user copy any of the stored entries
 in to their clipboard.
-.P
-All arguments passed to the
-.B scmd
-script are redirected to
-.B scm
-.P
-All arguments passed to the
-.B scmenu
-script are redirected to
-.B dmenu(1)
 .SH CUSTOMIZATION
 Although it may not be necessary for all users, scm can be configured
 by editing the config.h and (re)compiling the source
