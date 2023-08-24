@@ -9,6 +9,7 @@
 #include <string.h>
 #include <X11/X.h>
 #include <X11/extensions/Xfixes.h>
+#include "X11/Xlib.h"
 #include "config.h"
 #include "util.h"
 
@@ -56,33 +57,32 @@ ecalloc(size_t nmemb, size_t size)
 }
 
 char*
-get_utf_prop(xorg instance, const char* bufname)
+get_utf_prop(xorg instance, Atom atom)
 {
 	char *result = NULL;
 	char *out = NULL;
 	size_t ressize, restail;
 	int resbits;
 	XEvent ev;
-	Atom bufid  = XInternAtom(instance.display, bufname, False);
-	Atom fmtid  = XInternAtom(instance.display, "UTF8_STRING", False);
-	Atom propid = XInternAtom(instance.display, "XSEL_DATA", False);
-	Atom incrid = XInternAtom(instance.display, "INCR", False);
+	Atom fmtid  = XInternAtom(instance.dpy, "UTF8_STRING", False);
+	Atom propid = XInternAtom(instance.dpy, "XSEL_DATA", False);
+	Atom incrid = XInternAtom(instance.dpy, "INCR", False);
 
-	XConvertSelection(instance.display, bufid, fmtid, propid,
-			instance.window, CurrentTime);
+	XConvertSelection(instance.dpy, atom, fmtid, propid, instance.win,
+			CurrentTime);
 	do {
-		XNextEvent(instance.display, &ev);
-	} while (ev.type != SelectionNotify || ev.xselection.selection != bufid);
+		XNextEvent(instance.dpy, &ev);
+	} while (ev.type != SelectionNotify || ev.xselection.selection != atom);
 
 	if (ev.xselection.property) {
-		XGetWindowProperty(instance.display, instance.window, propid,
+		XGetWindowProperty(instance.dpy, instance.win, propid,
 				0, LONG_MAX / 4, False, AnyPropertyType, &fmtid, &resbits,
 				&ressize, &restail, (unsigned char**)&result);
 		if (fmtid == incrid) {
 			die("%s: buffer too large. INCR reading isn't implemented\n",
 					__func__, strerror(errno));
 		}
-		out = strndup(result, (size_t)ressize);
+		out = strndup(result, ressize);
 		XFree(result);
 	}
 
