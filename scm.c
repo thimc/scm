@@ -57,7 +57,7 @@ duplicate(const char *text)
 int
 cmp(const void *a, const void *b)
 {
-	return ((const entry*)a)->fname < ((const entry*)b)->fname ? -1 : 1;
+	return ((const entry*)a)->fname > ((const entry*)b)->fname;
 }
 
 void
