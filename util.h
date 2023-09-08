@@ -1,18 +1,18 @@
 /* See LICENSE file for copyright and license details. */
 
 typedef struct xorg_t {
-	Display* dpy;
+	Display *dpy;
 	Window win, root;
 	Atom clipboard, primary, utf8;
 	int event_base, error_base;
-} xorg;
+}      xorg;
 
 typedef struct entry_t {
 	int fname;
 	char *line;
-} entry;
+}       entry;
 
-void debug(const char *fmt, ...);
-void die(const char *fmt, ...);
+void debug(const char *fmt,...);
+void die(const char *fmt,...);
 void *ecalloc(size_t nmemb, size_t size);
 char *get_utf_prop(xorg instance, Atom atom);
