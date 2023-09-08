@@ -320,4 +320,4 @@ skip:
 
 	return 0;
 }
-//vim:cc = 80 ts = 4 tw = 4
+// vim: cc=80 ts=4 tw=4

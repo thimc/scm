@@ -87,3 +87,4 @@ get_utf_prop(xorg instance, Atom atom)
 	}
 	return out;
 }
+// vim: cc=80 ts=4 tw=4
