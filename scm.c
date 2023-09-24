@@ -85,7 +85,7 @@ makelinecache(void)
 	debug("makelinecache(): file path: \"%s\"", cpath);
 
 	if ((f = fopen(cpath, "w")) == NULL) {
-		die("fopen: %s '%s'", path, strerror(errno));
+		die("fopen(): %s '%s'", path, strerror(errno));
 	}
 	for (i = (int)clip->len - 1; i >= 0; i--) {
 		snprintf(path, PATH_SIZE, "%s/E%d", maindir, clip->entries[i]->fname);
@@ -133,7 +133,7 @@ getlinepreview(const char *path)
 int
 scanentries(void)
 {
-	int r, i;
+	int r, i, pr;
 	DIR *mdir;
 	struct dirent *dent;
 	char path[PATH_SIZE];
@@ -152,6 +152,9 @@ scanentries(void)
 				goto skip;
 			}
 		}
+		if (r == pr) {
+			continue;
+		}
 
 		if (clip->len < clip->capacity) {
 			snprintf(path, PATH_SIZE, "%s/E%d", maindir, r);
@@ -164,12 +167,13 @@ scanentries(void)
 			clip->len++;
 
 		} else {
-			snprintf(path, PATH_SIZE, "%s/E%d", maindir,
-					clip->entries[0]->fname);
+			pr = clip->entries[0]->fname;
+			snprintf(path, PATH_SIZE, "%s/E%d", maindir, pr);
 			if (!(flags & FLAG_KEEP)) {
 				if (remove(path) < 0) {
 					die("remove(): '%s' %s", path, strerror(errno));
 				}
+				debug("scanentries(): removed \"%s\"", path);
 			} else {
 				debug("scanentries(): kept \"%s\"", path);
 			}
@@ -247,7 +251,7 @@ main(int argc, char *argv[])
 
 #ifdef __OpenBSD__
 	if (pledge("stdio fattr rpath wpath cpath flock unveil", NULL) < 0) {
-		die("pledge: %s", strerror(errno));
+		die("pledge(): %s", strerror(errno));
 	}
 #endif
 
@@ -256,11 +260,11 @@ main(int argc, char *argv[])
 			maindir = argv[++i];
 			debug("working dir set to %s", maindir);
 			if (access(maindir, F_OK) < 0) {
-				die("access %s '%s'", path, strerror(errno));
+				die("access(): %s '%s'", path, strerror(errno));
 			}
 #ifdef __OpenBSD__
 			if (unveil(maindir, "rwc") < 0) {
-				die("unveil %s '%s'", path, strerror(errno));
+				die("unveil(): %s '%s'", path, strerror(errno));
 			}
 #endif
 		} else if (!strcmp(argv[i], "-p")) {
@@ -285,18 +289,18 @@ main(int argc, char *argv[])
 
 	snprintf(path, PATH_SIZE, "%s/lock", maindir);
 	if ((fd = open(path, O_RDWR | O_CREAT, FILEMASK)) < 0) {
-		die("open: %s '%s'", path, strerror(errno));
+		die("open(): %s '%s'", path, strerror(errno));
 	}
 	if (flock(fd, LOCK_EX | LOCK_NB) < 0) {
 		if (errno == EWOULDBLOCK) {
 			die("%s is already running!", argv[0]);
 		} else {
-			die("flock: %s '%s'", path, strerror(errno));
+			die("flock(): %s '%s'", path, strerror(errno));
 		}
 	}
 	if (XFixesQueryExtension(instance.dpy, &instance.event_base,
 		&instance.error_base) == 0) {
-		die("xfixes '%s'", strerror(errno));
+		die("xfixes(): '%s'", strerror(errno));
 	}
 	XFixesSelectSelectionInput(instance.dpy, instance.root,
 	    instance.clipboard, XFixesSetSelectionOwnerNotifyMask);
@@ -349,7 +353,7 @@ skip:
 	free(clip);
 
 	if (flock(fd, LOCK_UN) < 0) {
-		die(" flock: %s '%s'", path, strerror(errno));
+		die("flock(): %s '%s'", path, strerror(errno));
 	}
 	XDestroyWindow(instance.dpy, instance.win);
 	XCloseDisplay(instance.dpy);
