@@ -5,8 +5,8 @@ if [ ! -f "$line_cache" ]; then
 	exit 1
 fi
 
-str="$(sort -r < "$line_cache" | cut -f2- | dmenu -l 5 "$@")"
-entry_file="$(grep "$str" "$line_cache" | awk '{print $1}')"
+str="$(cat "$line_cache" | cut -f2- | dmenu -l 5 "$@" | sed 's/[][()\.^$*+?|{}`]/\\&/g')"
+entry_file="$(grep -E "$str" "$line_cache" | awk '{print $1}')"
 
 if [ -f "$entry_file" ]; then
 	xsel --clipboard < "$entry_file"
