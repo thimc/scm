@@ -1,16 +1,26 @@
 /* See LICENSE file for copyright and license details. */
 
-typedef struct xorg_t {
+#define PATH_SIZE			50
+#define LINE_SIZE			80
+#define LINE_COUNTER_SIZE	15
+
+typedef struct {
 	Display *dpy;
 	Window win, root;
 	Atom clipboard, primary, utf8;
 	int event_base, error_base;
-}      xorg;
+} xorg;
 
-typedef struct entry_t {
-	int fname;
+typedef struct {
 	char *line;
-}       entry;
+	int fname;
+} entry;
+
+typedef struct {
+	entry **entries;
+	size_t capacity;
+	size_t len;
+} entries;
 
 void debug(const char *fmt,...);
 void die(const char *fmt,...);
