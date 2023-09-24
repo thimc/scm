@@ -7,7 +7,7 @@ INC = config.h util.h
 SRC = $(NAME).c util.c
 OBJ = $(SRC:.c=.o)
 
-CFLAGS  += -g -Wall -Wextra -Wconversion\
+CFLAGS  += -g -Wall -Wextra\
 		   `pkg-config --cflags x11,xfixes`\
 		   -DVERSION=\"${VERSION}\"
 LDFLAGS += `pkg-config --libs x11,xfixes`
@@ -15,7 +15,7 @@ LDFLAGS += `pkg-config --libs x11,xfixes`
 all: options $(NAME)
 
 options:
-	@echo $(NAME) build options:
+	@echo "$(NAME) build options:"
 	@echo "PREFIX   = $(PREFIX)"
 	@echo "CFLAGS   = $(CFLAGS)"
 	@echo "LDFLAGS  = $(LDFLAGS)"
@@ -32,7 +32,7 @@ $(NAME): $(OBJ)
 clean:
 	rm -f $(NAME) $(OBJ)
 
-install: all
+install: $(NAME)
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
 	install -m 755 $(NAME) scmd scmenu $(DESTDIR)$(PREFIX)/bin/
 	sed "s/VERSION/${VERSION}/g" < scm.1 > ${DESTDIR}${MANPREFIX}/man1/scm.1
