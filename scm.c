@@ -284,8 +284,9 @@ main(int argc, char *argv[])
 		}
 	}
 
-	if (!maindir)
+	if (!maindir) {
 		exit(1);
+	}
 
 	snprintf(path, PATH_SIZE, "%s/lock", maindir);
 	if ((fd = open(path, O_RDWR | O_CREAT, FILEMASK)) < 0) {
