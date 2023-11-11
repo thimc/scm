@@ -1,13 +1,25 @@
 #!/bin/sh -e
-line_cache="${XDG_CACHE_HOME:-"$HOME/.cache"}/scm/line_cache"
-if [ ! -f "$line_cache" ]; then
-	>&2 printf "cache file '%s' not found!\n" "$line_cache"
+line_cache="${XDG_CACHE_HOME:-$HOME/.cache}/scm/line_cache"
+if test ! -f "$line_cache"; then
+	>&2 printf "error: cache file '%s' not found!\n" "$line_cache"
 	exit 1
 fi
 
-str="$(cat "$line_cache" | cut -f2- | dmenu -l 5 "$@" | sed 's/[][()\.^$*+?|{}`]/\\&/g')"
-entry_file="$(grep -E "$str" "$line_cache" | awk '{print $1}')"
+str="$(cut -f2- "$line_cache" | dmenu -l 5 "$@" | sed 's/[][()\.^$*+?|{}`]/\\&/g')"
+if test -z "$str"; then
+	exit 1
+fi
 
-if [ -f "$entry_file" ]; then
+entry_file="$(grep -E "$str" "$line_cache" | awk '{print $1}')"
+if test ! -f "$entry_file"; then
+	>&2 printf "error: entry file '%s' not found!\n" "$entry_file"
+	exit 1
+fi
+
+if test -x "$(command -v xsel)"; then
 	xsel --clipboard < "$entry_file"
+elif test -x "$(command -v xclip)"; then
+	xclip -selection clipboard "$entry_file"
+else
+	cat "$entry_file"
 fi
