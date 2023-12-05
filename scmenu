@@ -5,21 +5,10 @@ if test ! -f "$line_cache"; then
 	exit 1
 fi
 
-str="$(cut -f2- "$line_cache" | dmenu -l 5 "$@" | sed 's/[][()\.^$*+?|{}`]/\\&/g')"
-if test -z "$str"; then
-	exit 1
+input="$(cut -f2- $line_cache | dmenu -l 5 )"
+if test -z "$input"
+then
+	return 1
 fi
-
-entry_file="$(grep -E "$str" "$line_cache" | awk '{print $1}')"
-if test ! -f "$entry_file"; then
-	>&2 printf "error: entry file '%s' not found!\n" "$entry_file"
-	exit 1
-fi
-
-if test -x "$(command -v xsel)"; then
-	xsel --clipboard < "$entry_file"
-elif test -x "$(command -v xclip)"; then
-	xclip -selection clipboard "$entry_file"
-else
-	cat "$entry_file"
-fi
+entry="$(grep -F "$input" "$line_cache" | cut -f1 | sed 1q)"
+xclip -selection clipboard <"$entry"
