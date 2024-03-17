@@ -1,14 +1,13 @@
 #!/bin/sh -e
-line_cache="${XDG_CACHE_HOME:-$HOME/.cache}/scm/line_cache"
-if test ! -f "$line_cache"; then
-	>&2 printf "error: cache file '%s' not found!\n" "$line_cache"
-	exit 1
-fi
+fail() { >&2 echo "${0##*/}: $@"; exit 1; }
 
-input="$(cut -f2- $line_cache | dmenu -l 5 )"
-if test -z "$input"
-then
-	return 1
-fi
-entry="$(grep -F "$input" "$line_cache" | cut -f1 | sed 1q)"
+LINE_CACHE="${LINE_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/scm/line_cache}"
+test ! -f "$LINE_CACHE" && fail "cache file not found ($LINE_CACHE)"
+echo $LINE_CACHE
+
+input="$(cut -f2- "$LINE_CACHE" | dmenu -l 5 $*)"
+test -z "$input" && fail "no input provided"
+
+entry="$(grep -F -- "$input" "$LINE_CACHE" | cut -f1 | sed 1q)"
+test -z "$entry" && fail "missing data"
 xclip -selection clipboard <"$entry"
