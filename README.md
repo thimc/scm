@@ -11,7 +11,6 @@ It is also expected that you have dmenu installed.
 Arguments:
 * `-d` specifies the cache directory
 * `-v` prints the version number
-* `-V` enables debug messages which are printed to stderr
 * `-k` prevents scm from removing old entry files.
 
 The `scmd` script sets the cache directory to `$XDG_CACHE_HOME` or
