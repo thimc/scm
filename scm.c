@@ -102,7 +102,7 @@ getlinepreview(const char *path)
 {
 	FILE *f;
 	char *line, ln[LINE_COUNTER_SIZE];
-	int ch, nlines;
+	int ch, nlines, siz;
 
 	nlines = 0;
 	line = ecalloc(sizeof(*line), LINE_SIZE);
@@ -112,14 +112,22 @@ getlinepreview(const char *path)
 		nlines += (ch == '\n');
 	fseek(f, 0, SEEK_SET);
 	fgets(line, LINE_SIZE, f);
+	siz = strlen(line);
 	line[strcspn(line, "\n")] = '\0';
 	line[LINE_SIZE - LINE_COUNTER_SIZE] = '\0';
 
-	if (nlines > 0) {
-		nlines++;
+	if (nlines++ > 0) {
 		snprintf(ln, sizeof(ln), " (%d lines)", nlines);
-		strcat(line, ln);
+	} else if (siz > LINE_SIZE - LINE_COUNTER_SIZE) {
+		snprintf(ln, sizeof(ln), " ..");
+	} else {
+		goto ok;
 	}
+
+	strncat(line, ln, sizeof(ln));
+	line[LINE_SIZE-1] = '\0';
+
+ok:
 
 	return line;
 }
