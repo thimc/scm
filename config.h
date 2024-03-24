@@ -9,6 +9,4 @@ static char *maindir;
 
 extern int flags;
 
-#define FLAG_VERBOSE (1 << 1)
-#define FLAG_ONESHOT (1 << 2)
-#define FLAG_KEEP	 (1 << 3)
+#define FLAG_KEEP	 (1 << 1)

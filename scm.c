@@ -58,8 +58,8 @@ duplicate_text(const char *text)
 	buf[strcspn(buf, "\n")] = '\0';
 
 	for (i = 0; i < clip.count; i++) {
-		/* TODO: The first line may be the same but the
-		 * rest of the clip entry may as well differ. */
+		/* TODO: The first line may be the same but the rest of the clip
+		 * entry may as well differ. */
 		if (strncmp(clip.entries[i].line, buf, LINE_COUNTER_SIZE) == 0)
 			return 1;
 	}
@@ -96,9 +96,7 @@ getlinepreview(const char *path)
 	int ch, nlines;
 
 	nlines = 0;
-	if ((line = malloc(sizeof(*line) * LINE_SIZE)) == NULL)
-		return NULL;
-	memset(line, 0, LINE_SIZE);
+	line = calloc(sizeof(*line), LINE_SIZE);
 	if ((f = fopen(path, "r")) == NULL)
 		die("getlinepreview(): fopen(): %s '%s'", path, strerror(errno));
 
@@ -115,10 +113,7 @@ getlinepreview(const char *path)
 	line[strcspn(line, "\n")] = '\0';
 
 	if (nlines > 1) {
-		if ((ln = malloc(sizeof(*ln) * LINE_COUNTER_SIZE)) == NULL) {
-			free(line);
-			return NULL;
-		}
+		ln = ecalloc(sizeof(*ln), LINE_COUNTER_SIZE);
 		snprintf(ln, LINE_COUNTER_SIZE, " (%d lines)", nlines);
 		strncat(line, ln, LINE_COUNTER_SIZE);
 		free(ln);
@@ -142,7 +137,7 @@ scanentries(void)
 	clip.count = 0;
 
 	if ((mdir = opendir(maindir)) == NULL)
-		return 0;
+		return 1;
 
 	r = pr = 0;
 	while ((dent = readdir(mdir))) {
@@ -160,7 +155,7 @@ scanentries(void)
 		if (clip.entries[0].line) free(clip.entries[0].line);
 		snprintf(path, PATH_SIZE, "%s/E%d", maindir, clip.entries[0].fname);
 		if (!(flags & FLAG_KEEP)) {
-				if (remove(path) < 0) return 0;
+				if (remove(path) < 0) return 1;
 		}
 		clip.entries[0].fname = r;
 		clip.entries[0].line = NULL;
@@ -176,7 +171,7 @@ skip:
 		clip.entries[i].line = getlinepreview(path);
 	}
 
-	return 1;
+	return 0;
 }
 
 int
@@ -244,10 +239,6 @@ main(int argc, char *argv[])
 			puts("scm-" VERSION " © 2024 Thim Cederlund");
 			puts("https://github.com/thimc/scm");
 			exit(0);
-		} else if (!strcmp(argv[i], "-V")) {
-			flags |= FLAG_VERBOSE;
-		} else if (!strcmp(argv[i], "-1")) {
-			flags |= FLAG_ONESHOT;
 		} else if (!strcmp(argv[i], "-k")) {
 			flags |= FLAG_KEEP;
 		} else {
@@ -274,14 +265,14 @@ main(int argc, char *argv[])
 	if (XFixesQueryExtension(ctx.dpy, &ctx.event_base, &ctx.error_base) == 0)
 		die("xfixes(): '%s'", strerror(errno));
 	XFixesSelectSelectionInput(ctx.dpy, ctx.root, ctx.clipboard,
-		XFixesSetSelectionOwnerNotifyMask);
+			XFixesSetSelectionOwnerNotifyMask);
 
 	clip.count = 0;
 	clip.capacity = MAXENTRIES;
 	clip.entries = ecalloc(clip.capacity, sizeof(*clip.entries));
 
 	do {
-		if (scanentries()) makelinecache();
+		if (!scanentries()) makelinecache();
 		XNextEvent(ctx.dpy, &event);
 		if (event.type == (ctx.event_base + XFixesSelectionNotify)) {
 			sel_event = (XFixesSelectionNotifyEvent*)&event;
@@ -293,7 +284,7 @@ main(int argc, char *argv[])
 			}
 		}
 		sleep(1);
-	} while (!(flags & FLAG_ONESHOT));
+	} while (1);
 
 	for (i = 0; i < (int)clip.capacity; i++)
 		free(clip.entries[i].line);
