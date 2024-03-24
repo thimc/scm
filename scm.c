@@ -112,6 +112,7 @@ getlinepreview(const char *path)
 		nlines += (ch == '\n');
 	fseek(f, 0, SEEK_SET);
 	fgets(line, LINE_SIZE, f);
+	fclose(f);
 	siz = strlen(line);
 	line[strcspn(line, "\n")] = '\0';
 	line[LINE_SIZE - LINE_COUNTER_SIZE] = '\0';
@@ -128,7 +129,6 @@ getlinepreview(const char *path)
 	line[LINE_SIZE-1] = '\0';
 
 ok:
-
 	return line;
 }
 
