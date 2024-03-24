@@ -50,20 +50,29 @@ sortentries(void)
 int
 duplicate_text(const char *text)
 {
+	char path[PATH_SIZE];
+	FILE *f;
 	size_t i;
 	char *buf;
-
-	if ((buf = strndup(text, LINE_SIZE)) == NULL)
-		return 1;
-	buf[strcspn(buf, "\n")] = '\0';
+	long siz;
 
 	for (i = 0; i < clip.count; i++) {
-		/* TODO: The first line may be the same but the rest of the clip
-		 * entry may as well differ. */
-		if (strncmp(clip.entries[i].line, buf, LINE_COUNTER_SIZE) == 0)
+		snprintf(path, PATH_SIZE, "%s/E%d", maindir, clip.entries[i].fname);
+		if ((f = fopen(path, "r")) == NULL) return 1;
+		fseek(f, 0, SEEK_END);
+		siz = ftell(f);
+		fseek(f, 0, SEEK_SET);
+		buf = ecalloc(sizeof(*buf), siz + 1);
+		fread(buf, sizeof(*buf), siz, f);
+		buf[siz] = '\0';
+		fclose(f);
+
+		if (strcmp(text, buf) == 0) {
+			free(buf);
 			return 1;
+		}
+		free(buf);
 	}
-	free(buf);
 
 	return 0;
 }
@@ -92,32 +101,26 @@ char *
 getlinepreview(const char *path)
 {
 	FILE *f;
-	char *line, *ln;
+	char *line, ln[LINE_COUNTER_SIZE];
 	int ch, nlines;
 
 	nlines = 0;
-	line = calloc(sizeof(*line), LINE_SIZE);
+	line = ecalloc(sizeof(*line), LINE_SIZE);
 	if ((f = fopen(path, "r")) == NULL)
 		die("getlinepreview(): fopen(): %s '%s'", path, strerror(errno));
-
-	while ((ch = fgetc(f)) != EOF) nlines += (ch == '\n');
-	rewind(f);
-
-	if(fread(line, LINE_SIZE - LINE_COUNTER_SIZE, sizeof(*line), f) < 0) {
-	    fclose(f);
-	    free(line);
-	    return NULL;
-    	}
-	if (line == NULL) die("fgets(): %s '%s'", path, strerror(errno));
-	fclose(f);
+	while ((ch = fgetc(f)) != EOF)
+		nlines += (ch == '\n');
+	fseek(f, 0, SEEK_SET);
+	fgets(line, LINE_SIZE, f);
 	line[strcspn(line, "\n")] = '\0';
+	line[LINE_SIZE - LINE_COUNTER_SIZE] = '\0';
 
-	if (nlines > 1) {
-		ln = ecalloc(sizeof(*ln), LINE_COUNTER_SIZE);
-		snprintf(ln, LINE_COUNTER_SIZE, " (%d lines)", nlines);
-		strncat(line, ln, LINE_COUNTER_SIZE);
-		free(ln);
+	if (nlines > 0) {
+		nlines++;
+		snprintf(ln, sizeof(ln), " (%d lines)", nlines);
+		strcat(line, ln);
 	}
+
 	return line;
 }
 
