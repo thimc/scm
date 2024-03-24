@@ -125,8 +125,8 @@ getlinepreview(const char *path)
 		goto ok;
 	}
 
-	strncat(line, ln, sizeof(ln));
-	line[LINE_SIZE-1] = '\0';
+	strncat(line, ln, LINE_COUNTER_SIZE);
+	line[LINE_SIZE - 1] = '\0';
 
 ok:
 	return line;
@@ -190,8 +190,14 @@ storentry(char *text)
 {
 	FILE *f;
 	char path[PATH_SIZE];
+	int i;
+	size_t siz;
 
-	if (strnlen(text, LINE_SIZE) < 2) return 1;
+	i = siz = 0;
+	while (text[i++] != '\0' && i < LINE_SIZE)
+		siz += (text[i] != '\n');
+
+	if (siz < 1) return 1;
 	if (duplicate_text(text)) return 1;
 
 	snprintf(path, PATH_SIZE, "%s/E%d", maindir, (int)time(NULL));
