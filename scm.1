@@ -3,7 +3,7 @@
 scm \- simple clipboard manager
 .SH SYNOPSIS
 .B scm
-.RB [ \-d\ directory]\ [\-v]\ [\-V]\ [\-1]
+.RB [ \-d\ directory]\ [\-v]\ [\-V]\ [\-k]
 .SH DESCRIPTION
 scm is a minimalistic clipboard manager daemon for X.
 .SH OPTIONS
@@ -12,19 +12,13 @@ scm is a minimalistic clipboard manager daemon for X.
 prints version information to stderr, then exits.
 .TP
 .B \-d
-specifies the working directory for scm where all entries are kept.
+sets the cache directory where all entries will be stored.
 .TP
 .B \-V
 prints debug messages to stdout.
 .TP
-.B \-1
-runs scm for one loop iteration and then exits.
-.TP
 .B \-k
 prevents old entires from being deleted.
-.TP
-.B \-p
-enables changes in the PRIMARY selections as well.
 .SH USAGE
 Set the working directory for
 .B scm

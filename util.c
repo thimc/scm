@@ -1,4 +1,3 @@
-/* See LICENSE file for copyright and license details. */
 #include <dirent.h>
 #include <err.h>
 #include <errno.h>
@@ -13,20 +12,6 @@
 
 #include "config.h"
 #include "util.h"
-
-void
-debug(const char *fmt,...)
-{
-	va_list ap;
-
-	if (!(flags & FLAG_VERBOSE))
-		return;
-
-	va_start(ap, fmt);
-	vfprintf(stderr, fmt, ap);
-	va_end(ap);
-	fputc('\n', stderr);
-}
 
 void
 die(const char *fmt,...)
@@ -58,25 +43,24 @@ ecalloc(size_t nmemb, size_t size)
 }
 
 char *
-get_utf_prop(xorg instance, Atom atom)
+get_utf_prop(context ctx, Atom atom)
 {
 	char *result = NULL;
 	char *out = NULL;
 	size_t ressize, restail;
 	int resbits;
 	XEvent ev;
-	Atom fmtid = XInternAtom(instance.dpy, "UTF8_STRING", False);
-	Atom propid = XInternAtom(instance.dpy, "XSEL_DATA", False);
-	Atom incrid = XInternAtom(instance.dpy, "INCR", False);
+	Atom fmtid = XInternAtom(ctx.dpy, "UTF8_STRING", False);
+	Atom propid = XInternAtom(ctx.dpy, "XSEL_DATA", False);
+	Atom incrid = XInternAtom(ctx.dpy, "INCR", False);
 
-	XConvertSelection(instance.dpy, atom, fmtid, propid, instance.win,
-	    CurrentTime);
+	XConvertSelection(ctx.dpy, atom, fmtid, propid, ctx.win, CurrentTime);
 	do {
-		XNextEvent(instance.dpy, &ev);
+		XNextEvent(ctx.dpy, &ev);
 	} while (ev.type != SelectionNotify || ev.xselection.selection != atom);
 
 	if (ev.xselection.property) {
-		XGetWindowProperty(instance.dpy, instance.win, propid,
+		XGetWindowProperty(ctx.dpy, ctx.win, propid,
 		    0, LONG_MAX / 4, False, AnyPropertyType, &fmtid, &resbits,
 		    &ressize, &restail, (unsigned char **) &result);
 		if (fmtid == incrid) {
@@ -88,4 +72,3 @@ get_utf_prop(xorg instance, Atom atom)
 	}
 	return out;
 }
-// vim: cc=80 ts=4 tw=4

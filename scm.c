@@ -1,5 +1,3 @@
-/* See LCENSE file for copyright and license details. */
-
 #include <assert.h>
 #include <dirent.h>
 #include <err.h>
@@ -25,49 +23,45 @@ int duplicate_text(const char *text);
 void makelinecache(void);
 char *getlinepreview(const char *path);
 int scanentries(void);
-int storeclip(char *text);
-void usage(void);
+int storentry(char *text);
+void usage(char *argv);
 
 int flags;
-entries *clip;
-static xorg instance;
+entries clip;
+static context ctx;
 
 void
 sortentries(void)
 {
-	int i, j;
-	entry *tmp;
+	size_t i, j;
+	entry tmp;
 
-	for (i = 0; i < (int)clip->len - 1; i++) {
-		for (j = 0; j < (int)clip->len - i - 1; j++) {
-			if (clip->entries[j]->fname > clip->entries[j + 1]->fname) {
-				tmp = clip->entries[j];
-				clip->entries[j] = clip->entries[j + 1];
-				clip->entries[j + 1] = tmp;
+	for (i = 0; i < clip.count; i++) {
+		for (j = 0; j < clip.count - i - 1; j++) {
+			if (clip.entries[j].fname > clip.entries[j + 1].fname) {
+				tmp = clip.entries[j];
+				clip.entries[j] = clip.entries[j + 1];
+				clip.entries[j + 1] = tmp;
 			}
 		}
 	}
-	debug("scanentries(): sorted");
 }
 
 int
 duplicate_text(const char *text)
 {
-	int i;
+	size_t i;
 	char *buf;
-	entry *curr;
 
-	buf = strndup(text, LINE_SIZE);
+	if ((buf = strndup(text, LINE_SIZE)) == NULL)
+		return 1;
 	buf[strcspn(buf, "\n")] = '\0';
 
-	for (i = 0; i < (int)clip->len; i++) {
-		curr = clip->entries[i];
-		if (strcmp(curr->line, buf) == 0) {
-			/* TODO: The first line may match but the rest of the
-			 * clip entry may as well differ */
-			free(buf);
+	for (i = 0; i < clip.count; i++) {
+		/* TODO: The first line may be the same but the
+		 * rest of the clip entry may as well differ. */
+		if (strncmp(clip.entries[i].line, buf, LINE_COUNTER_SIZE) == 0)
 			return 1;
-		}
 	}
 	free(buf);
 
@@ -82,18 +76,13 @@ makelinecache(void)
 	int i;
 
 	snprintf(cpath, PATH_SIZE, "%s/line_cache", maindir);
-	debug("makelinecache(): file path: \"%s\"", cpath);
 
-	if ((f = fopen(cpath, "w")) == NULL) {
-		die("fopen(): %s '%s'", path, strerror(errno));
-	}
-	for (i = (int)clip->len - 1; i >= 0; i--) {
-		snprintf(path, PATH_SIZE, "%s/E%d", maindir, clip->entries[i]->fname);
-		if (access(path, F_OK) < 0) {
-			continue;
-		}
-		fprintf(f, "%s\t%s\n", path, clip->entries[i]->line);
-		debug("makelinecache(): %s\t%s", path, clip->entries[i]->line);
+	if ((f = fopen(cpath, "w")) == NULL)
+		die("makelinecache(): fopen(): %s '%s'", path, strerror(errno));
+	for (i = clip.count - 1; i >= 0; --i) {
+		snprintf(path, PATH_SIZE, "%s/E%d", maindir, clip.entries[i].fname);
+		if (access(path, F_OK) < 0) continue;
+		fprintf(f, "%s\t%s\n", path, clip.entries[i].line);
 	}
 
 	fclose(f);
@@ -103,29 +92,36 @@ char *
 getlinepreview(const char *path)
 {
 	FILE *f;
-	char *line;
-	int ch, nlines = 0;
+	char *line, *ln;
+	int ch, nlines;
 
-	line = ecalloc(sizeof(&line), LINE_SIZE);
+	nlines = 0;
+	if ((line = malloc(sizeof(*line) * LINE_SIZE)) == NULL)
+		return NULL;
+	memset(line, 0, LINE_SIZE);
+	if ((f = fopen(path, "r")) == NULL)
+		die("getlinepreview(): fopen(): %s '%s'", path, strerror(errno));
 
-	debug("getlinepreview(): %s", path);
-
-	if ((f = fopen(path, "r")) == NULL) {
-		die("fopen(): %s '%s'", path, strerror(errno));
-	}
-	while ((ch = fgetc(f)) != EOF) {
-		nlines += (ch == '\n');
-	}
+	while ((ch = fgetc(f)) != EOF) nlines += (ch == '\n');
 	rewind(f);
 
-	if ((fgets(line, LINE_SIZE - LINE_COUNTER_SIZE, f)) == NULL) {
-		die("fgets(): %s '%s'", path, strerror(errno));
-	}
+	if(fread(line, LINE_SIZE - LINE_COUNTER_SIZE, sizeof(*line), f) < 0) {
+	    fclose(f);
+	    free(line);
+	    return NULL;
+    	}
+	if (line == NULL) die("fgets(): %s '%s'", path, strerror(errno));
 	fclose(f);
 	line[strcspn(line, "\n")] = '\0';
 
 	if (nlines > 1) {
-		snprintf(line, LINE_SIZE, "%s (%d lines)", line, nlines);
+		if ((ln = malloc(sizeof(*ln) * LINE_COUNTER_SIZE)) == NULL) {
+			free(line);
+			return NULL;
+		}
+		snprintf(ln, LINE_COUNTER_SIZE, " (%d lines)", nlines);
+		strncat(line, ln, LINE_COUNTER_SIZE);
+		free(ln);
 	}
 	return line;
 }
@@ -133,98 +129,81 @@ getlinepreview(const char *path)
 int
 scanentries(void)
 {
-	int r, i, pr;
+	char path[PATH_SIZE];
 	DIR *mdir;
 	struct dirent *dent;
-	char path[PATH_SIZE];
+	size_t i;
+	int r, pr;
 
-	if (!(mdir = opendir(maindir))) {
-		die("opendir(): %s '%s'", maindir, strerror(errno));
+	for (i = 0; i < clip.count; i++) {
+	    if (clip.entries[i].line) free(clip.entries[i].line);
+	    clip.entries[i].fname = 0;
 	}
+	clip.count = 0;
+
+	if ((mdir = opendir(maindir)) == NULL)
+		return 0;
+
+	r = pr = 0;
 	while ((dent = readdir(mdir))) {
-		if (!sscanf(dent->d_name, "E%d", &r)) {
+		if (!sscanf(dent->d_name, "E%d", &r)) continue;
+		if (r == pr) goto skip;
+		pr = r;
+
+		if (clip.count < clip.capacity) {
+			clip.entries[clip.count].fname = r;
+			clip.entries[clip.count].line = NULL;
+			clip.count++;
 			continue;
 		}
 
-		for (i = 0; i < (int)clip->len; i++) {
-			if (clip->entries[i]->fname == r) {
-				debug("scanentires(): duplicate %d", r);
-				goto skip;
-			}
+		if (clip.entries[0].line) free(clip.entries[0].line);
+		snprintf(path, PATH_SIZE, "%s/E%d", maindir, clip.entries[0].fname);
+		if (!(flags & FLAG_KEEP)) {
+				if (remove(path) < 0) return 0;
 		}
-		if (r == pr) {
-			continue;
-		}
+		clip.entries[0].fname = r;
+		clip.entries[0].line = NULL;
 
-		if (clip->len < clip->capacity) {
-			snprintf(path, PATH_SIZE, "%s/E%d", maindir, r);
-			clip->entries[clip->len] = ecalloc(1, sizeof(&clip->entries[0]));
-			clip->entries[clip->len]->fname = r;
-			clip->entries[clip->len]->line = getlinepreview(path);
-
-			debug("scanentries(): assigned \"E%d\" to entries[%ld]",
-					r, clip->len);
-			clip->len++;
-
-		} else {
-			pr = clip->entries[0]->fname;
-			snprintf(path, PATH_SIZE, "%s/E%d", maindir, pr);
-			if (!(flags & FLAG_KEEP)) {
-				if (remove(path) < 0) {
-					die("remove(): '%s' %s", path, strerror(errno));
-				}
-				debug("scanentries(): removed \"%s\"", path);
-			} else {
-				debug("scanentries(): kept \"%s\"", path);
-			}
-
-			free(clip->entries[0]->line);
-			snprintf(path, PATH_SIZE, "%s/E%d", maindir, r);
-			clip->entries[0]->fname = r;
-			clip->entries[0]->line = getlinepreview(path);
-			debug("scanentries(): replaced with \"%s\"", path);
-
-			sortentries();
-		}
+		sortentries();
 skip:
 		r = 0;
 	}
 	closedir(mdir);
 
+	for (i = 0; i < clip.count; i++) {
+		snprintf(path, PATH_SIZE, "%s/E%d", maindir, clip.entries[i].fname);
+		clip.entries[i].line = getlinepreview(path);
+	}
+
 	return 1;
 }
 
 int
-storeclip(char *text)
+storentry(char *text)
 {
 	FILE *f;
 	char path[PATH_SIZE];
 
-	if (strnlen(text, LINE_SIZE) < 1) {
-		return 1;
-	}
-	if (duplicate_text(text)) {
-		return 1;
-	}
-	snprintf(path, PATH_SIZE, "%s/E%d", maindir, (int) time(NULL));
-	if ((f = fopen(path, "w")) == NULL) {
+	if (strnlen(text, LINE_SIZE) < 2) return 1;
+	if (duplicate_text(text)) return 1;
+
+	snprintf(path, PATH_SIZE, "%s/E%d", maindir, (int)time(NULL));
+	if ((f = fopen(path, "w")) == NULL)
 		die("fopen(): %s '%s'", path, strerror(errno));
-	}
 	fputs(text, f);
 	fclose(f);
 
-	if (chmod(path, FILEMASK) < 0) {
+	if (chmod(path, FILEMASK) < 0)
 		die("chmod(): %s '%s'", path, strerror(errno));
-	}
-	debug("storeclip(): wrote and chmod \"%s\"", path);
 
 	return 0;
 }
 
 void
-usage(void)
+usage(char *program)
 {
-	fprintf(stderr, "usage: scm [-d directory] [-v] [-V] [-p] [-1] [-k]\n");
+	fprintf(stderr, "usage: %s [-d directory] [-v] [-V] [-1] [-k]\n", program);
 	exit(1);
 }
 
@@ -232,7 +211,6 @@ int
 main(int argc, char *argv[])
 {
 	char *clipboard;
-	char *primary;
 	XFixesSelectionNotifyEvent *sel_event;
 	XEvent event;
 	int i, fd;
@@ -240,37 +218,30 @@ main(int argc, char *argv[])
 
 	flags = 0;
 	maindir = NULL;
-	if (!(instance.dpy = XOpenDisplay(NULL))) {
+	if (!(ctx.dpy = XOpenDisplay(NULL)))
 		die("can't open X display: %s", strerror(errno));
-	}
-	instance.root = DefaultRootWindow(instance.dpy);
-	instance.clipboard = XInternAtom(instance.dpy, "CLIPBOARD", False);
-	instance.primary = XInternAtom(instance.dpy, "PRIMARY", False);
-	instance.win = XCreateSimpleWindow(instance.dpy, instance.root,
+	ctx.root = DefaultRootWindow(ctx.dpy);
+	ctx.clipboard = XInternAtom(ctx.dpy, "CLIPBOARD", False);
+	ctx.primary = XInternAtom(ctx.dpy, "PRIMARY", False);
+	ctx.win = XCreateSimpleWindow(ctx.dpy, ctx.root,
 	    1, 1, 1, 1, 1, CopyFromParent, CopyFromParent);
 
 #ifdef __OpenBSD__
-	if (pledge("stdio fattr rpath wpath cpath flock unveil", NULL) < 0) {
+	if (pledge("stdio fattr rpath wpath cpath flock unveil", NULL) < 0)
 		die("pledge(): %s", strerror(errno));
-	}
 #endif
 
 	for (i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "-d")) {
 			maindir = argv[++i];
-			debug("working dir set to %s", maindir);
-			if (access(maindir, F_OK) < 0) {
+			if (access(maindir, F_OK) < 0)
 				die("access(): %s '%s'", path, strerror(errno));
-			}
 #ifdef __OpenBSD__
-			if (unveil(maindir, "rwc") < 0) {
+			if (unveil(maindir, "rwc") < 0)
 				die("unveil(): %s '%s'", path, strerror(errno));
-			}
 #endif
-		} else if (!strcmp(argv[i], "-p")) {
-			flags |= FLAG_PRIMARY;
 		} else if (!strcmp(argv[i], "-v")) {
-			puts("scm-" VERSION " © 2023 Thim Cederlund");
+			puts("scm-" VERSION " © 2024 Thim Cederlund");
 			puts("https://github.com/thimc/scm");
 			exit(0);
 		} else if (!strcmp(argv[i], "-V")) {
@@ -280,18 +251,18 @@ main(int argc, char *argv[])
 		} else if (!strcmp(argv[i], "-k")) {
 			flags |= FLAG_KEEP;
 		} else {
-			usage();
+			usage(argv[0]);
 		}
 	}
 
 	if (!maindir) {
+		usage(argv[0]);
 		exit(1);
 	}
 
 	snprintf(path, PATH_SIZE, "%s/lock", maindir);
-	if ((fd = open(path, O_RDWR | O_CREAT, FILEMASK)) < 0) {
+	if ((fd = open(path, O_RDWR | O_CREAT, FILEMASK)) < 0)
 		die("open(): %s '%s'", path, strerror(errno));
-	}
 	if (flock(fd, LOCK_EX | LOCK_NB) < 0) {
 		if (errno == EWOULDBLOCK) {
 			die("%s is already running!", argv[0]);
@@ -299,67 +270,39 @@ main(int argc, char *argv[])
 			die("flock(): %s '%s'", path, strerror(errno));
 		}
 	}
-	if (XFixesQueryExtension(instance.dpy, &instance.event_base,
-		&instance.error_base) == 0) {
-		die("xfixes(): '%s'", strerror(errno));
-	}
-	XFixesSelectSelectionInput(instance.dpy, instance.root,
-	    instance.clipboard, XFixesSetSelectionOwnerNotifyMask);
 
-	if (flags & FLAG_PRIMARY) {
-		XFixesSelectSelectionInput(instance.dpy, instance.root,
-		    instance.primary, XFixesSetSelectionOwnerNotifyMask);
-	}
-	clip = ecalloc(1, sizeof(entries));
-	clip->capacity = MAXENTRIES;
-	clip->len = 0;
-	clip->entries = ecalloc(clip->capacity, sizeof(&clip->entries[0]));
+	if (XFixesQueryExtension(ctx.dpy, &ctx.event_base, &ctx.error_base) == 0)
+		die("xfixes(): '%s'", strerror(errno));
+	XFixesSelectSelectionInput(ctx.dpy, ctx.root, ctx.clipboard,
+		XFixesSetSelectionOwnerNotifyMask);
+
+	clip.count = 0;
+	clip.capacity = MAXENTRIES;
+	clip.entries = ecalloc(clip.capacity, sizeof(*clip.entries));
 
 	do {
-		if (scanentries()) {
-			makelinecache();
-		}
-		XNextEvent(instance.dpy, &event);
-
-		if (event.type == (instance.event_base + XFixesSelectionNotify)) {
-			sel_event = (XFixesSelectionNotifyEvent *) & event;
-
-			if (sel_event->selection == instance.clipboard) {
-				if ((clipboard = get_utf_prop(instance, instance.clipboard))) {
-					if (!storeclip(clipboard)) {
-						goto skip;
-					}
-				}
-			} else if (sel_event->selection ==
-			    instance.primary && (flags & FLAG_PRIMARY)) {
-				if ((primary = get_utf_prop(instance,
-					    instance.primary))) {
-					if (!storeclip(primary)) {
-						goto skip;
-					}
-				}
+		if (scanentries()) makelinecache();
+		XNextEvent(ctx.dpy, &event);
+		if (event.type == (ctx.event_base + XFixesSelectionNotify)) {
+			sel_event = (XFixesSelectionNotifyEvent*)&event;
+			if (sel_event->selection == ctx.clipboard) {
+				if ((clipboard = get_utf_prop(ctx, ctx.clipboard)))
+					if (!storentry(clipboard))
+						free(clipboard);
+				continue;
 			}
 		}
-skip:
-		free(clipboard);
-		/* TODO: sleep() is used avoid filename clashing */
 		sleep(1);
 	} while (!(flags & FLAG_ONESHOT));
 
-	for (i = 0; i < (int)clip->capacity; i++) {
-		free(clip->entries[i]->line);
-		free(clip->entries[i]);
-	}
-	free(clip->entries);
-	free(clip);
+	for (i = 0; i < (int)clip.capacity; i++)
+		free(clip.entries[i].line);
+	free(clip.entries);
 
-	if (flock(fd, LOCK_UN) < 0) {
+	if (flock(fd, LOCK_UN) < 0)
 		die("flock(): %s '%s'", path, strerror(errno));
-	}
-	XDestroyWindow(instance.dpy, instance.win);
-	XCloseDisplay(instance.dpy);
+	XDestroyWindow(ctx.dpy, ctx.win);
+	XCloseDisplay(ctx.dpy);
 
 	return 0;
 }
-
-// vim:ts=4 tw=4 cc=80
