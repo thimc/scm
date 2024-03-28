@@ -8,7 +8,7 @@ OBJS = $(SRCS:.c=.o)
 PREFIX = /usr/local
 MANPREFIX = $(PREFIX)/man
 
-CFLAGS  += -g -Wall -Wextra\
+CFLAGS  += -Wall -Wextra\
 		   `pkg-config --cflags x11,xfixes`\
 		   -DVERSION=\"${VERSION}\"
 LDFLAGS += `pkg-config --libs x11,xfixes`
