@@ -32,17 +32,17 @@ die(const char *fmt,...)
 	exit(1);
 }
 
-void *
+void*
 ecalloc(size_t nmemb, size_t size)
 {
 	void *p;
 
 	if (!(p = calloc(nmemb, size)))
-		die("%s: %s\n", __func__, strerror(errno));
+		die("ecalloc(): %s\n", strerror(errno));
 	return p;
 }
 
-char *
+char*
 get_utf_prop(context ctx, Atom atom)
 {
 	char *result = NULL;
@@ -60,9 +60,9 @@ get_utf_prop(context ctx, Atom atom)
 	} while (ev.type != SelectionNotify || ev.xselection.selection != atom);
 
 	if (ev.xselection.property) {
-		XGetWindowProperty(ctx.dpy, ctx.win, propid,
-		    0, LONG_MAX / 4, False, AnyPropertyType, &fmtid, &resbits,
-		    &ressize, &restail, (unsigned char **) &result);
+		XGetWindowProperty(ctx.dpy, ctx.win, propid, 0, LONG_MAX / 4,
+				False, AnyPropertyType, &fmtid, &resbits,
+				&ressize, &restail, (unsigned char**)&result);
 		if (fmtid == incrid) {
 			die("%s: buffer too large. INCR reading isn't implemented\n",
 			    __func__, strerror(errno));

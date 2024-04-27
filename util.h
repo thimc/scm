@@ -5,7 +5,7 @@
 typedef struct {
 	Display *dpy;
 	Window win, root;
-	Atom clipboard, primary, utf8;
+	Atom clipboard, utf8;
 	int event_base, error_base;
 } context;
 

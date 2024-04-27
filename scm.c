@@ -86,6 +86,7 @@ makelinecache(void)
 
 	snprintf(cpath, PATH_SIZE, "%s/line_cache", maindir);
 
+	if (clip.count < 1) return;
 	if ((f = fopen(cpath, "w")) == NULL)
 		die("makelinecache(): fopen(): %s '%s'", path, strerror(errno));
 	for (i = clip.count - 1; i >= 0; --i) {
@@ -97,7 +98,7 @@ makelinecache(void)
 	fclose(f);
 }
 
-char *
+char*
 getlinepreview(const char *path)
 {
 	FILE *f;
@@ -143,6 +144,7 @@ scanentries(void)
 
 	for (i = 0; i < clip.count; i++) {
 	    if (clip.entries[i].line) free(clip.entries[i].line);
+		clip.entries[i].line = NULL;
 	    clip.entries[i].fname = 0;
 	}
 	clip.count = 0;
@@ -158,7 +160,6 @@ scanentries(void)
 
 		if (clip.count < clip.capacity) {
 			clip.entries[clip.count].fname = r;
-			clip.entries[clip.count].line = NULL;
 			clip.count++;
 			continue;
 		}
@@ -234,7 +235,6 @@ main(int argc, char *argv[])
 		die("can't open X display: %s", strerror(errno));
 	ctx.root = DefaultRootWindow(ctx.dpy);
 	ctx.clipboard = XInternAtom(ctx.dpy, "CLIPBOARD", False);
-	ctx.primary = XInternAtom(ctx.dpy, "PRIMARY", False);
 	ctx.win = XCreateSimpleWindow(ctx.dpy, ctx.root,
 	    1, 1, 1, 1, 1, CopyFromParent, CopyFromParent);
 
@@ -281,8 +281,9 @@ main(int argc, char *argv[])
 
 	if (XFixesQueryExtension(ctx.dpy, &ctx.event_base, &ctx.error_base) == 0)
 		die("xfixes(): '%s'", strerror(errno));
+
 	XFixesSelectSelectionInput(ctx.dpy, ctx.root, ctx.clipboard,
-			XFixesSetSelectionOwnerNotifyMask);
+		XFixesSetSelectionOwnerNotifyMask);
 
 	clip.count = 0;
 	clip.capacity = MAXENTRIES;
@@ -294,9 +295,10 @@ main(int argc, char *argv[])
 		if (event.type == (ctx.event_base + XFixesSelectionNotify)) {
 			sel_event = (XFixesSelectionNotifyEvent*)&event;
 			if (sel_event->selection == ctx.clipboard) {
-				if ((clipboard = get_utf_prop(ctx, ctx.clipboard)))
-					if (!storentry(clipboard))
-						free(clipboard);
+				if ((clipboard = get_utf_prop(ctx, ctx.clipboard))) {
+					storentry(clipboard);
+					free(clipboard);
+				}
 				continue;
 			}
 		}
